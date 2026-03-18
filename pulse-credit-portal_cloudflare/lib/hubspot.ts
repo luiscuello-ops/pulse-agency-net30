@@ -1,8 +1,11 @@
 import { Client } from '@hubspot/api-client'
 
-export const hubspot = new Client({
-    accessToken: process.env.HUBSPOT_PRIVATE_APP_TOKEN || '',
-})
+const hubspotToken = process.env.HUBSPOT_PRIVATE_APP_TOKEN || '';
+
+export const hubspot = hubspotToken 
+    ? new Client({ accessToken: hubspotToken })
+    : null;
+
 
 export interface HubSpotLead {
     email: string;
@@ -20,6 +23,11 @@ export async function createHubSpotLead(lead: HubSpotLead) {
     }
 
     try {
+        if (!hubspot) {
+            console.warn('HubSpot client not initialized (missing token).');
+            return null;
+        }
+
         // 1. Create or Update Contact
         const contactResponse = await hubspot.crm.contacts.basicApi.create({
             properties: {
