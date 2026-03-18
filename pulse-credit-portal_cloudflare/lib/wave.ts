@@ -256,3 +256,98 @@ export async function syncWaveToSupabase(waveCustomerId: string, supabaseCustome
         }
     }
 }
+
+/**
+ * Creates a Wave invoice for an advance payment and sends it to the client by email.
+ * Called automatically from the Stripe webhook when a payment is confirmed.
+ */
+export async function createAndSendWaveReceipt(input: {
+    waveCustomerId: string;
+    amountCents: number;
+    customerEmail: string;
+    description?: string;
+}) {
+    const businessId = process.env.WAVE_BUSINESS_ID;
+    if (!businessId) throw new Error('Missing WAVE_BUSINESS_ID');
+
+    const amountDollars = (input.amountCents / 100).toFixed(2);
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+
+    // Step 1: Create the invoice in Wave
+    const createMutation = `
+        mutation($input: InvoiceCreateInput!) {
+            invoiceCreate(input: $input) {
+                didSucceed
+                inputErrors { code message path }
+                invoice {
+                    id
+                    invoiceNumber
+                    pdfUrl
+                }
+            }
+        }
+    `;
+
+    const createVariables = {
+        input: {
+            businessId,
+            customerId: input.waveCustomerId,
+            invoiceDate: today,
+            dueDate: today, // Advance payment = already paid, due today
+            memo: input.description || 'Advance Payment — Pulse Credit Account',
+            items: [
+                {
+                    description: input.description || 'Advance payment applied to account balance',
+                    quantity: '1',
+                    unitPrice: amountDollars,
+                    // Wave requires an income account - using default Sales/Services
+                    taxes: []
+                }
+            ]
+        }
+    };
+
+    const createResult = await waveFetch(createMutation, createVariables);
+    const invoiceId = createResult?.invoiceCreate?.invoice?.id;
+
+    if (!invoiceId) {
+        console.error('Wave invoice creation failed:', createResult?.invoiceCreate?.inputErrors);
+        return null;
+    }
+
+    console.log(`Wave invoice created: ${invoiceId} for $${amountDollars}`);
+
+    // Step 2: Send the invoice by email (Wave emails it directly to the customer)
+    const sendMutation = `
+        mutation($input: InvoiceSendInput!) {
+            invoiceSend(input: $input) {
+                didSucceed
+                inputErrors { code message path }
+            }
+        }
+    `;
+
+    const sendVariables = {
+        input: {
+            invoiceId,
+            to: [{ email: input.customerEmail }],
+            subject: 'Your Pulse Agency Payment Receipt',
+            message: `Thank you for your advance payment of $${amountDollars}. This payment has been applied to your Pulse Credit account. Please find your invoice attached.`,
+            attachPdf: true,
+        }
+    };
+
+    const sendResult = await waveFetch(sendMutation, sendVariables);
+
+    if (sendResult?.invoiceSend?.didSucceed) {
+        console.log(`Wave invoice sent to ${input.customerEmail}`);
+    } else {
+        console.error('Wave invoice send failed:', sendResult?.invoiceSend?.inputErrors);
+    }
+
+    return {
+        invoiceId,
+        invoiceNumber: createResult?.invoiceCreate?.invoice?.invoiceNumber,
+        sent: sendResult?.invoiceSend?.didSucceed || false
+    };
+}

@@ -34,6 +34,7 @@ function RegisterForm() {
     const einParam = searchParams.get('ein') || ''
     const score = searchParams.get('score')
     const limit = searchParams.get('limit')
+    const waveId = searchParams.get('waveId') || null
 
     const [error, setError] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(false)
@@ -84,7 +85,8 @@ function RegisterForm() {
                         phone: data.phone,
                         website: data.website,
                         preliminary_score: score ? parseInt(score) : null,
-                        credit_limit: limit ? parseInt(limit) : 500
+                        credit_limit: limit ? parseInt(limit) : 500,
+                        wave_customer_id: waveId
                     })
 
                 if (dbError) console.error('DB Error:', dbError)

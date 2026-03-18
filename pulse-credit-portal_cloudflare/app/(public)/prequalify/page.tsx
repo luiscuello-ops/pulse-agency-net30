@@ -36,7 +36,7 @@ type PrequalifyValues = z.infer<typeof prequalifySchema>
 export default function PrequalifyPage() {
     const [step, setStep] = useState(1)
     const [isLoading, setIsLoading] = useState(false)
-    const [result, setResult] = useState<{ success: boolean; score?: number; creditLimit?: number } | null>(null)
+    const [result, setResult] = useState<{ success: boolean; score?: number; creditLimit?: number; waveCustomerId?: string | null } | null>(null)
 
     const {
         register,
@@ -59,7 +59,7 @@ export default function PrequalifyPage() {
                 body: JSON.stringify(data),
             })
             const json = await response.json()
-            setResult({ success: true, score: json.score, creditLimit: json.creditLimit })
+            setResult({ success: true, score: json.score, creditLimit: json.creditLimit, waveCustomerId: json.waveCustomerId })
         } catch {
             setResult({ success: false })
         } finally {
@@ -98,7 +98,7 @@ export default function PrequalifyPage() {
                         asChild
                         className="w-full max-w-md mx-auto py-8 rounded-2xl bg-gradient-to-r from-violet-600 to-purple-500 hover:from-violet-500 hover:to-purple-400 transition-all shadow-[0_0_30px_rgba(139,92,246,0.3)] text-xl font-black h-auto active:scale-95"
                     >
-                        <Link href={`/register?email=${encodeURIComponent(getValues('email'))}&score=${result.score}&limit=${result.creditLimit}&company=${encodeURIComponent(getValues('companyName'))}&ein=${encodeURIComponent(getValues('ein'))}`}>
+                        <Link href={`/register?email=${encodeURIComponent(getValues('email'))}&score=${result.score}&limit=${result.creditLimit}&company=${encodeURIComponent(getValues('companyName'))}&ein=${encodeURIComponent(getValues('ein'))}${result.waveCustomerId ? '&waveId=' + encodeURIComponent(result.waveCustomerId) : ''}`}>
                             Finalize Your Access Area
                         </Link>
                     </Button>

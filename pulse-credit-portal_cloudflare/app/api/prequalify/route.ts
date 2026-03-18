@@ -36,14 +36,20 @@ export async function POST(req: Request) {
             console.error('HubSpot integration failed, but scoring succeeded:', hubspotError)
         }
 
-        // Create Wave Customer (Account Ledger)
+        // Create Wave Customer (Account Ledger) and capture the ID
+        let waveCustomerId: string | null = null
         try {
-            await createWaveCustomer({
-                name: `${validatedData.firstName} ${validatedData.lastName}`,
+            const waveResult = await createWaveCustomer({
+                name: `${validatedData.companyName || validatedData.firstName + ' ' + validatedData.lastName}`,
                 email: validatedData.email,
                 firstName: validatedData.firstName,
                 lastName: validatedData.lastName
             })
+            // Extract the customer ID from Wave's GraphQL response
+            waveCustomerId = waveResult?.customerCreate?.customer?.id || null
+            if (waveCustomerId) {
+                console.log('Wave customer created:', waveCustomerId)
+            }
         } catch (waveError) {
             console.error('Wave integration failed, but scoring succeeded:', waveError)
         }
@@ -52,6 +58,7 @@ export async function POST(req: Request) {
             success: true,
             score,
             creditLimit,
+            waveCustomerId,
             message: 'Pre-qualification successful'
         })
     } catch (error) {
