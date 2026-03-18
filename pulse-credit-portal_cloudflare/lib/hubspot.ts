@@ -26,9 +26,6 @@ export async function createHubSpotLead(lead: HubSpotLead) {
                 email: lead.email,
                 firstname: lead.firstName,
                 lastname: lead.lastName,
-                credit_score_estimate: lead.score.toString(),
-                monthly_income: lead.income.toString(),
-                monthly_debts: lead.debts.toString(),
             }
         })
 
@@ -42,6 +39,7 @@ export async function createHubSpotLead(lead: HubSpotLead) {
                 dealstage: stageId,
                 pipeline: pipelineId,
                 amount: '0', // Initial amount
+                description: `Pre-qualification Details:\n- Credit Score: ${lead.score}\n- Monthly Income: $${lead.income}\n- Monthly Debts: $${lead.debts}`
             },
             associations: [
                 {

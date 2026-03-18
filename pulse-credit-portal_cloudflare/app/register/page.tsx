@@ -63,6 +63,7 @@ function RegisterForm() {
                 email: data.email,
                 password: data.password,
                 options: {
+                    emailRedirectTo: `${window.location.origin}/auth/callback?next=/welcome`,
                     data: {
                         preliminary_score: score ? parseInt(score) : null
                     }
