@@ -5,7 +5,7 @@ import { User, Settings, Shield, Bell } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { createBrowserClient } from '@supabase/ssr'
+import { createPortalBrowserClient } from '@/lib/supabase/client'
 
 type Profile = {
     id: string
@@ -25,10 +25,8 @@ export default function SettingsPage() {
     const [saving, setSaving] = useState(false)
     const [saved, setSaved] = useState(false)
 
-    const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
+    const supabase = createPortalBrowserClient()
+
 
     useEffect(() => {
         const load = async () => {
