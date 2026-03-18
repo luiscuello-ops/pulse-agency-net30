@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
-import { calculatePreliminaryScore } from '@/lib/scoring'
+import { calculatePreliminaryScore, determineCreditTier } from '@/lib/scoring'
 import { prequalifySchema } from '@/lib/schemas'
 import { createHubSpotLead } from '@/lib/hubspot'
+import { createWaveCustomer } from '@/lib/wave'
 
 export async function POST(req: Request) {
     try {
@@ -14,8 +15,12 @@ export async function POST(req: Request) {
         const score = calculatePreliminaryScore({
             income: validatedData.income,
             debts: validatedData.debts,
-            creditInquiries: validatedData.creditInquiries
+            creditInquiries: validatedData.creditInquiries,
+            companyName: validatedData.companyName,
+            ein: validatedData.ein
         })
+
+        const creditLimit = determineCreditTier(score)
 
         // Create HubSpot lead
         try {
@@ -31,9 +36,22 @@ export async function POST(req: Request) {
             console.error('HubSpot integration failed, but scoring succeeded:', hubspotError)
         }
 
+        // Create Wave Customer (Account Ledger)
+        try {
+            await createWaveCustomer({
+                name: `${validatedData.firstName} ${validatedData.lastName}`,
+                email: validatedData.email,
+                firstName: validatedData.firstName,
+                lastName: validatedData.lastName
+            })
+        } catch (waveError) {
+            console.error('Wave integration failed, but scoring succeeded:', waveError)
+        }
+
         return NextResponse.json({
             success: true,
             score,
+            creditLimit,
             message: 'Pre-qualification successful'
         })
     } catch (error) {

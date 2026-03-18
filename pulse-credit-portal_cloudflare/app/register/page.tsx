@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Link from "next/link"
+import Image from 'next/image'
 import { AlertCircle, Loader2, Trophy } from 'lucide-react'
 
 const signupSchema = z.object({
@@ -20,7 +21,7 @@ const signupSchema = z.object({
     ein: z.string().min(9, 'Valid EIN is required'),
     corporateEmail: z.string().email('Invalid corporate email'),
     phone: z.string().min(10, 'Valid phone number is required'),
-    website: z.string().url('Invalid website URL').optional().or(z.literal('')),
+    website: z.string().optional(),
 })
 
 type SignupInput = z.infer<typeof signupSchema>
@@ -29,7 +30,10 @@ function RegisterForm() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const emailParam = searchParams.get('email') || ''
+    const companyParam = searchParams.get('company') || ''
+    const einParam = searchParams.get('ein') || ''
     const score = searchParams.get('score')
+    const limit = searchParams.get('limit')
 
     const [error, setError] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(false)
@@ -44,6 +48,8 @@ function RegisterForm() {
         defaultValues: {
             email: emailParam,
             corporateEmail: emailParam,
+            companyName: companyParam,
+            ein: einParam,
         }
     })
 
@@ -77,7 +83,8 @@ function RegisterForm() {
                         corporate_email: data.corporateEmail,
                         phone: data.phone,
                         website: data.website,
-                        preliminary_score: score ? parseInt(score) : null
+                        preliminary_score: score ? parseInt(score) : null,
+                        credit_limit: limit ? parseInt(limit) : 500
                     })
 
                 if (dbError) console.error('DB Error:', dbError)
@@ -101,14 +108,17 @@ function RegisterForm() {
                     </div>
                     <div>
                         <h2 className="text-xl font-black">Score Locked In: {score}</h2>
+                        {limit && <h3 className="text-2xl font-black text-green-300 mt-1 uppercase tracking-wider">Approved Limit: ${limit}</h3>}
                         <p className="text-violet-100 font-medium">Complete your registration to access your credit line.</p>
                     </div>
                 </div>
             )}
 
             <Card className="w-full max-w-2xl border-zinc-100 shadow-xl rounded-3xl p-4">
-                <CardHeader className="text-center space-y-2">
-                    <CardTitle className="text-3xl font-black tracking-tight text-violet-600 italic">PULSE</CardTitle>
+                <CardHeader className="text-center space-y-2 pb-2">
+                    <div className="flex justify-center mb-2">
+                        <Image src="/logo.png" alt="Pulse Agency" width={80} height={80} className="object-contain" />
+                    </div>
                     <CardDescription className="text-zinc-500 font-medium text-base">Complete your professional registration</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -164,6 +174,7 @@ function RegisterForm() {
                             <div className="space-y-3">
                                 <Label htmlFor="website" className="text-sm font-semibold text-zinc-700 ml-1">Website</Label>
                                 <Input id="website" placeholder="https://company.com" {...register('website')} className="h-12 rounded-2xl bg-zinc-50 border-transparent focus:bg-white transition-all" />
+                                {errors.website && <p className="text-xs text-red-500 ml-1">{errors.website.message}</p>}
                             </div>
                         </div>
 

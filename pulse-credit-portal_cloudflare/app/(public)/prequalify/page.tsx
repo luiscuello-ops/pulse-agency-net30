@@ -24,6 +24,8 @@ const prequalifySchema = z.object({
     firstName: z.string().min(2, 'Name is required'),
     lastName: z.string().min(2, 'Last name is required'),
     email: z.string().email('Invalid email address'),
+    companyName: z.string().min(2, 'Company name is required'),
+    ein: z.string().regex(/^\d{2}-?\d{7}$/, 'Must be a valid EIN format (XX-XXXXXXX)'),
     income: z.string().min(1, 'Income is required'),
     debts: z.string().min(1, 'Debts are required'),
     creditInquiries: z.string().min(1, 'Inquiries count is required'),
@@ -34,7 +36,7 @@ type PrequalifyValues = z.infer<typeof prequalifySchema>
 export default function PrequalifyPage() {
     const [step, setStep] = useState(1)
     const [isLoading, setIsLoading] = useState(false)
-    const [result, setResult] = useState<{ success: boolean; score?: number } | null>(null)
+    const [result, setResult] = useState<{ success: boolean; score?: number; creditLimit?: number } | null>(null)
 
     const {
         register,
@@ -57,7 +59,7 @@ export default function PrequalifyPage() {
                 body: JSON.stringify(data),
             })
             const json = await response.json()
-            setResult({ success: true, score: json.score })
+            setResult({ success: true, score: json.score, creditLimit: json.creditLimit })
         } catch {
             setResult({ success: false })
         } finally {
@@ -83,10 +85,10 @@ export default function PrequalifyPage() {
 
                     <div className="inline-block relative mb-12">
                         <div className="absolute inset-0 bg-violet-500/20 blur-3xl rounded-full" />
-                        <div className="relative text-8xl font-black text-white tracking-tighter glow-text-purple italic">
-                            {result.score}
+                        <div className="relative text-7xl font-black text-white tracking-tighter glow-text-purple italic">
+                            ${result.creditLimit?.toLocaleString() || '500'}
                         </div>
-                        <p className="text-xs font-black text-violet-400 uppercase tracking-[0.3em] mt-2">Estimated Internal Score</p>
+                        <p className="text-xs font-black text-violet-400 uppercase tracking-[0.3em] mt-2">Approved Credit Limit</p>
                     </div>
 
                     <Separator className="bg-white/5 mb-12" />
@@ -96,7 +98,7 @@ export default function PrequalifyPage() {
                         asChild
                         className="w-full max-w-md mx-auto py-8 rounded-2xl bg-gradient-to-r from-violet-600 to-purple-500 hover:from-violet-500 hover:to-purple-400 transition-all shadow-[0_0_30px_rgba(139,92,246,0.3)] text-xl font-black h-auto active:scale-95"
                     >
-                        <Link href={`/register?email=${encodeURIComponent(getValues('email'))}&score=${result.score}`}>
+                        <Link href={`/register?email=${encodeURIComponent(getValues('email'))}&score=${result.score}&limit=${result.creditLimit}&company=${encodeURIComponent(getValues('companyName'))}&ein=${encodeURIComponent(getValues('ein'))}`}>
                             Finalize Your Access Area
                         </Link>
                     </Button>
@@ -113,12 +115,8 @@ export default function PrequalifyPage() {
                 <div className="lg:col-span-12 xl:col-span-7 space-y-16">
                     {/* Header Branding */}
                     <div className="space-y-12">
-                        <div className="flex items-center gap-6 group">
+                        <div className="flex items-center group">
                             <Logo />
-                            <div className="h-10 w-px bg-white/10 hidden md:block" />
-                            <span className="text-2xl font-black text-white tracking-[0.4em] uppercase italic opacity-80 decoration-violet-500 underline-offset-8">
-                                Pulse Agency <span className="text-[#8b5cf6]">LLC</span>
-                            </span>
                         </div>
 
                         <h1 className="text-4xl md:text-6xl lg:text-7xl font-black text-white tracking-tighter leading-[0.8] max-w-3xl">
@@ -225,6 +223,18 @@ export default function PrequalifyPage() {
 
                             {step === 2 && (
                                 <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="space-y-3">
+                                            <Label htmlFor="companyName" className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-2">Business Name</Label>
+                                            <Input id="companyName" placeholder="Pulse Agency LLC" {...register('companyName')} className="cosmic-input py-6 text-lg font-bold" />
+                                            {errors?.companyName && <p className="text-xs text-red-400 font-bold ml-2 italic">{errors.companyName.message}</p>}
+                                        </div>
+                                        <div className="space-y-3">
+                                            <Label htmlFor="ein" className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-2">Valid IRS EIN</Label>
+                                            <Input id="ein" placeholder="00-0000000" {...register('ein')} className="cosmic-input py-6 text-lg font-bold" />
+                                            {errors?.ein && <p className="text-xs text-red-400 font-bold ml-2 italic">{errors.ein.message}</p>}
+                                        </div>
+                                    </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="space-y-3">
                                             <Label htmlFor="income" className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-2">Monthly Income ($)</Label>

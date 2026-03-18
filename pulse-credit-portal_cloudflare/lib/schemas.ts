@@ -11,6 +11,8 @@ export const prequalifySchema = z.object({
     firstName: z.string().min(2, 'First name is required'),
     lastName: z.string().min(2, 'Last name is required'),
     email: z.string().email('Invalid email address'),
+    companyName: z.string().min(2, 'Company name is required'),
+    ein: z.string().regex(/^\d{2}-?\d{7}$/, 'Must be a valid EIN format (XX-XXXXXXX)'),
     income: z.preprocess((val) => (val === '' ? undefined : Number(val)), z.number().min(0, 'Income must be a positive number')),
     debts: z.preprocess((val) => (val === '' ? undefined : Number(val)), z.number().min(0, 'Debts must be a positive number')),
     creditInquiries: z.preprocess((val) => (val === '' ? undefined : Number(val)), z.number().min(0, 'Inquiries must be a positive number')),

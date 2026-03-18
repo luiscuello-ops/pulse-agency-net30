@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Link from "next/link"
+import Image from "next/image"
 import { AlertCircle, Loader2 } from 'lucide-react'
 
 export default function LoginPage() {
@@ -54,8 +55,10 @@ export default function LoginPage() {
     return (
         <div className="container mx-auto py-12 px-4 min-h-screen flex flex-col items-center justify-center">
             <Card className="w-full max-w-sm border-zinc-100 shadow-xl rounded-3xl p-4">
-                <CardHeader className="text-center space-y-2">
-                    <CardTitle className="text-3xl font-black tracking-tight text-violet-600 italic">PULSE</CardTitle>
+                <CardHeader className="text-center space-y-2 pb-2">
+                    <div className="flex justify-center mb-2">
+                        <Image src="/logo.png" alt="Pulse Agency" width={80} height={80} className="object-contain" />
+                    </div>
                     <CardDescription className="text-zinc-500 font-medium text-base">Sign in to your portal</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -80,7 +83,10 @@ export default function LoginPage() {
                             )}
                         </div>
                         <div className="space-y-3">
-                            <Label htmlFor="password" title="Password" className="text-sm font-semibold text-zinc-700 ml-1">Password</Label>
+                            <div className="flex items-center justify-between">
+                                <Label htmlFor="password" title="Password" className="text-sm font-semibold text-zinc-700 ml-1">Password</Label>
+                                <Link href="/forgot-password" className="text-sm font-semibold text-violet-600 hover:underline">Forgot password?</Link>
+                            </div>
                             <Input
                                 id="password"
                                 type="password"

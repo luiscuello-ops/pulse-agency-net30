@@ -25,49 +25,67 @@ export async function POST(req: Request) {
 
     const supabase = createPortalAdminClient()
 
-    // Handle the event
     switch (event.type) {
-        case 'checkout.session.completed':
+        case 'checkout.session.completed': {
             const session = event.data.object as {
                 id: string,
                 customer: string,
                 amount_total: number,
-                metadata: { userId?: string }
+                metadata: { userId?: string, user_id?: string, payment_type?: string }
             }
-            const userId = session.metadata?.userId
+            const userId = session.metadata?.user_id || session.metadata?.userId
 
             if (userId) {
-                // 1. Fetch/Update customer status
-                const { data: customer, error: customerError } = await supabase
-                    .from('customers')
-                    .update({
-                        subscription_status: 'active',
-                        stripe_customer_id: session.customer as string
-                    })
-                    .eq('user_id', userId)
-                    .select()
-                    .single()
+                const paymentType = session.metadata?.payment_type
 
-                if (customerError) {
-                    console.error('Error updating customer:', customerError)
-                    return NextResponse.json({ error: 'Customer update failed' }, { status: 500 })
-                }
+                if (paymentType === 'advance_payment') {
+                    // Record advance payment as credits in Supabase
+                    const { data: customer } = await supabase
+                        .from('customers')
+                        .select('id')
+                        .eq('user_id', userId)
+                        .single()
 
-                // 2. Record invoice using customer_id
-                if (customer) {
-                    const { error: invoiceError } = await supabase
-                        .from('invoices')
-                        .insert({
+                    if (customer) {
+                        const { error: paymentError } = await supabase.from('payments').insert({
+                            customer_id: customer.id,
+                            wave_payment_id: `stripe_${session.id}`,
+                            amount_cents: session.amount_total,
+                            status: 'paid',
+                            payment_method: 'stripe_advance',
+                        })
+                        if (paymentError) console.error('Error recording advance payment:', paymentError)
+                    }
+                } else {
+                    // Standard subscription/onboarding payment
+                    const { data: customer, error: customerError } = await supabase
+                        .from('customers')
+                        .update({
+                            subscription_status: 'active',
+                            stripe_customer_id: session.customer as string
+                        })
+                        .eq('user_id', userId)
+                        .select()
+                        .single()
+
+                    if (customerError) {
+                        console.error('Error updating customer:', customerError)
+                        return NextResponse.json({ error: 'Customer update failed' }, { status: 500 })
+                    }
+
+                    if (customer) {
+                        const { error: invoiceError } = await supabase.from('invoices').insert({
                             customer_id: customer.id,
                             stripe_invoice_id: session.id,
                             amount_cents: session.amount_total,
                             status: 'paid'
                         })
-
-                    if (invoiceError) console.error('Error recording invoice:', invoiceError)
+                        if (invoiceError) console.error('Error recording invoice:', invoiceError)
+                    }
                 }
             }
             break
+        }
 
         default:
             console.log(`Unhandled event type ${event.type}`)

@@ -29,13 +29,37 @@ export default async function DashboardPage() {
 
     const isActive = profile?.subscription_status === 'active'
 
+    // Calculate dynamic balances from mirrored Wave invoices
+    let currentBalanceCents = 0;
+    let nextPaymentDate: string | null = null;
+
+    if (invoices) {
+        for (const inv of invoices) {
+            if (inv.status !== 'PAID' && inv.status !== 'DRAFT') {
+                currentBalanceCents += inv.amount_cents || 0;
+                if (inv.due_date && (!nextPaymentDate || new Date(inv.due_date) < new Date(nextPaymentDate))) {
+                    nextPaymentDate = inv.due_date;
+                }
+            }
+        }
+    }
+
+    const currentBalance = currentBalanceCents / 100;
+    const totalLimit = isActive ? (profile?.credit_limit || 500) : 0;
+    const availableCredit = Math.max(0, totalLimit - currentBalance);
+    const utilization = totalLimit > 0 ? (currentBalance / totalLimit) * 100 : 0;
+    
+    // Format helpers
+    const formatCurrency = (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount);
+    const formatDate = (dateString: string | null) => dateString ? new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';
+
     return (
         <div className="max-w-7xl mx-auto px-6 py-10 space-y-12 min-h-screen">
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center w-full gap-6">
                 <div className="space-y-4">
                     <div className="flex items-center gap-4">
                         <h1 className="text-5xl font-black text-white tracking-tighter leading-none">
-                            Welcome, <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-purple-400">{profile?.company_name || user.email}</span>
+                            Welcome, <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-purple-400">{profile?.company_name || 'to Pulse'}</span>
                         </h1>
                         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/20 shadow-[0_0_15px_rgba(34,197,94,0.1)]">
                             <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
@@ -63,14 +87,14 @@ export default async function DashboardPage() {
                                 <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest leading-none">Live Pulse Tracking</p>
                             </div>
                             <div className="text-right">
-                                <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Total Limit</p>
-                                <p className="text-3xl font-black text-white tracking-tight leading-none">${isActive ? '50,000' : '0'}</p>
+                                <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Approved Limit</p>
+                                <p className="text-3xl font-black text-white tracking-tight leading-none">{formatCurrency(totalLimit)}</p>
                             </div>
                         </div>
 
                         <CreditUtilizationGauge
-                            percentage={isActive ? 72 : 100}
-                            subLabel={isActive ? "Low" : "Critical"}
+                            percentage={utilization}
+                            subLabel={utilization > 80 ? "Critical" : utilization > 50 ? "Moderate" : "Optimal"}
                             label="Utilization"
                         />
 
@@ -89,7 +113,7 @@ export default async function DashboardPage() {
                         </div>
 
                         <div className="mt-10 text-center">
-                            <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest border border-white/10 rounded-full px-6 py-2 inline-block">Next Payment Due: March 30, 2026</p>
+                            <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest border border-white/10 rounded-full px-6 py-2 inline-block">Next Payment Due: {formatDate(nextPaymentDate)}</p>
                         </div>
                     </div>
 
@@ -104,7 +128,7 @@ export default async function DashboardPage() {
                     <div className="glass-card p-10 border-white/5 flex items-center justify-between group hover:border-violet-500/30 transition-all cursor-default">
                         <div className="space-y-2">
                             <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Available Credit</p>
-                            <p className="text-4xl font-black text-white tracking-tighter leading-none">$1,780</p>
+                            <p className="text-4xl font-black text-white tracking-tighter leading-none">{formatCurrency(availableCredit)}</p>
                             <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">Total Credit Line</p>
                         </div>
                         <CheckCircle2 className="w-12 h-12 text-green-500/20 group-hover:text-green-500/40 transition-all" />
@@ -112,15 +136,15 @@ export default async function DashboardPage() {
                     <div className="glass-card p-10 border-white/5 flex items-center justify-between group hover:border-violet-500/30 transition-all cursor-default">
                         <div className="space-y-2">
                             <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Current Balance</p>
-                            <p className="text-4xl font-black text-white tracking-tighter leading-none">$720</p>
-                            <p className="text-[10px] font-bold text-amber-400 uppercase tracking-widest">Due: Mar 30, 2026</p>
+                            <p className="text-4xl font-black text-white tracking-tighter leading-none">{formatCurrency(currentBalance)}</p>
+                            <p className="text-[10px] font-bold text-amber-400 uppercase tracking-widest">Due: {formatDate(nextPaymentDate)}</p>
                         </div>
                         <AlertCircle className="w-12 h-12 text-amber-500/20 group-hover:text-amber-500/40 transition-all" />
                     </div>
                     <div className="glass-card p-10 border-white/5 flex items-center justify-between group hover:border-violet-500/30 transition-all cursor-default">
                         <div className="space-y-2">
                             <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Next Payment Due</p>
-                            <p className="text-4xl font-black text-white tracking-tighter leading-none">$720</p>
+                            <p className="text-4xl font-black text-white tracking-tighter leading-none">{formatCurrency(currentBalance)}</p>
                             <p className="text-[10px] font-bold text-violet-400 uppercase tracking-widest">Auto-Pay Enabled</p>
                         </div>
                         <Clock className="w-12 h-12 text-violet-500/20 group-hover:text-violet-500/40 transition-all" />

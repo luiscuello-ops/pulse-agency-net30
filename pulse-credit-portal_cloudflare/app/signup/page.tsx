@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Link from "next/link"
+import Image from "next/image"
 import { AlertCircle, Loader2 } from 'lucide-react'
 
 const signupSchema = z.object({
@@ -20,7 +21,7 @@ const signupSchema = z.object({
     ein: z.string().min(9, 'Valid EIN is required'),
     corporateEmail: z.string().email('Invalid corporate email'),
     phone: z.string().min(10, 'Valid phone number is required'),
-    website: z.string().url('Invalid website URL').optional().or(z.literal('')),
+    website: z.string().optional(),
 })
 
 type SignupInput = z.infer<typeof signupSchema>
@@ -85,8 +86,10 @@ export default function SignupPage() {
     return (
         <div className="container mx-auto py-12 px-4 min-h-screen flex flex-col items-center justify-center">
             <Card className="w-full max-w-2xl border-zinc-100 shadow-xl rounded-3xl p-4">
-                <CardHeader className="text-center space-y-2">
-                    <CardTitle className="text-3xl font-black tracking-tight text-violet-600 italic">PULSE</CardTitle>
+                <CardHeader className="text-center space-y-2 pb-2">
+                    <div className="flex justify-center mb-2">
+                        <Image src="/logo.png" alt="Pulse Agency" width={80} height={80} className="object-contain" />
+                    </div>
                     <CardDescription className="text-zinc-500 font-medium text-base">Create your business account</CardDescription>
                 </CardHeader>
                 <CardContent>

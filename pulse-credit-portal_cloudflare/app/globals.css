@@ -104,3 +104,51 @@ body::before {
 .neon-border {
   box-shadow: 0 0 15px rgba(180, 80, 255, 0.6);
 }
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) scale(1.02); }
+  50% { transform: translateY(-20px) scale(1); }
+}
+
+@keyframes float-delayed {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-15px) scale(1.05); }
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-float {
+  animation: float 8s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: float-delayed 10s ease-in-out infinite;
+}
+
+.animate-marquee {
+  animation: marquee 30s linear infinite;
+}
+
+.text-glow {
+  text-shadow: 0 0 30px rgba(139, 92, 246, 0.4);
+}
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.hover-3d {
+  transition: transform 0.5s ease;
+  transform-style: preserve-3d;
+}
+
+.hover-3d:hover {
+  transform: rotateY(10deg) rotateX(5deg);
+}
+
+.rotate-3 {
+  transform: rotate(3deg);
+}
